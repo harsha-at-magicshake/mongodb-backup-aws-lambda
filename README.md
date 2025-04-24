@@ -62,6 +62,49 @@ A notification will be sent each time a backup request is triggered, informing y
 | ENVIRONMENT        | Specify your app environment for custom Slack notifications                                                                                                                            | No. Default is `unknown`     |
 | SLACK_WEBHOOK_URL  | Your Slack webhook URL                                                                                                                                                                 | No                           |
 | BACKUPS_TO_RETAIN  | Number of backups to retain in S3. Older backups will be deleted.                                                                                                                       | No. Default is `10`          |
+| SNS_TOPIC_ARN      | SNS topic ARN for notifications on backup success/failure                                                                                                                               | No                          |
+| AWS_REGION         | AWS region for SDK operations (default: `us-east-1`)                                                                                                                                   | No                          |
+
+## SNS Notification Support
+
+If you wish to receive notifications (email, SMS, etc.) on backup success or failure, configure an [AWS SNS topic](https://docs.aws.amazon.com/sns/latest/dg/sns-create-topic.html) and set the following environment variables:
+
+```env
+SNS_TOPIC_ARN=arn:aws:sns:us-east-1:xxxxxxxxxxxx:mongodb-backup-events
+AWS_REGION=us-east-1
+```
+
+- Subscribe your email or endpoint to the SNS topic and confirm the subscription.
+- The Lambda will send notifications for both success and failure events.
+
+## Local Testing
+
+A script named `test-local.js` is provided to allow local execution and debugging of the backup logic.
+
+### Usage
+
+1. Ensure your `.env` file is correctly configured with all required variables.
+2. Run the following command:
+   ```bash
+   node test-local.js
+   ```
+3. The script will perform a backup using your local MongoDB (or the URI you provide), upload to S3, and send notifications as configured.
+
+## Example `.env`
+
+```env
+MONGODUMP_OPTIONS=--uri="mongodb://localhost:27017"
+S3_BUCKET=d33-ot-db-backups
+S3_STORAGE_CLASS=STANDARD
+ZIP_FILENAME=mongodb_backup
+FOLDER_PREFIX=mongodb_backups
+DATE_FORMAT=YYYYMMDD_HHmmss
+SLACK_WEBHOOK_URL=
+ENVIRONMENT=local
+BACKUPS_TO_RETAIN=10
+SNS_TOPIC_ARN=arn:aws:sns:us-east-1:xxxxxxxxxxxx:mongodb-backup-events
+AWS_REGION=us-east-1
+```
 
 ## Et voila ! 
 
