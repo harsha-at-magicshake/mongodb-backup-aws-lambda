@@ -6,6 +6,7 @@ const exec = util.promisify(require("node:child_process").exec);
 const AWS = require("aws-sdk");
 const dayjs = require("dayjs");
 const axios = require("axios");
+const AdmZip = require("adm-zip");
 
 // ENVIRONMENT VARIABLES
 const dumpOptions = process.env.MONGODUMP_OPTIONS;
@@ -114,13 +115,14 @@ exports.handler = async function (_event, _context) {
   }
 
   try {
-    const archivePath = `/tmp/${fileName}.tar.gz`;
+    const archivePath = `/tmp/${fileName}.zip`;
     console.info(
-      `[${environment.toUpperCase()}] Creating TAR.GZ archive from folder: ${folderName} -> ${archivePath}`
+      `[${environment.toUpperCase()}] Creating ZIP archive from folder: ${folderName} -> ${archivePath}`
     );
 
-    // Use system tar instead of adm-zip to avoid EFAULT read errors in Lambda
-    await exec(`cd /tmp && tar -czf ${archivePath} ${fileName}`);
+    const zip = new AdmZip();
+    zip.addLocalFolder(folderName, fileName);
+    zip.writeZip(archivePath);
 
     zipBuffer = fs.readFileSync(archivePath);
   } catch (err) {
@@ -138,13 +140,13 @@ exports.handler = async function (_event, _context) {
 
   try {
     console.info(
-      `[${environment.toUpperCase()}] Uploading archive to S3 bucket: ${bucketName}, Key: ${folderPrefix}/${fileName}.tar.gz`
+      `[${environment.toUpperCase()}] Uploading archive to S3 bucket: ${bucketName}, Key: ${folderPrefix}/${fileName}.zip`
     );
     await s3bucket
       .upload({
-        Key: `${folderPrefix}/${fileName}.tar.gz`,
+        Key: `${folderPrefix}/${fileName}.zip`,
         Body: zipBuffer,
-        ContentType: "application/gzip",
+        ContentType: "application/zip",
         ServerSideEncryption: "AES256",
         StorageClass: s3StorageClass,
       })
